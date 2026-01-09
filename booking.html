@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book Appointment</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <h2>Book Appointment</h2>
+  <form id="bookingForm">
+    <label for="doctor">Choose Doctor:</label>
+    <select id="doctor" name="doctor"></select>
+
+    <label for="patientName">Your Name:</label>
+    <input type="text" id="patientName" required>
+
+    <label for="date">Date:</label>
+    <input type="date" id="date" required>
+
+    <label for="time">Time:</label>
+    <input type="time" id="time" required>
+
+    <button type="submit">Book Appointment</button>
+  </form>
+  <a href="confirmation.html">View Bookings</a>
+
+  <script src="js/app.js"></script>
+  <script>
+    const doctorSelect = document.getElementById('doctor');
+
+    // Populate doctor dropdown
+    doctors.forEach(doc => {
+      const option = document.createElement('option');
+      option.value = doc.id;
+      option.textContent = `${doc.name} (${doc.specialty})`;
+      doctorSelect.appendChild(option);
+    });
+
+    // Prefill doctor if coming from doctor list
+    const prefillId = localStorage.getItem('prefillDoctor');
+    if (prefillId) {
+      doctorSelect.value = prefillId;
+      localStorage.removeItem('prefillDoctor');
+    }
+
+    // Prevent double booking for same doctor on same date
+    doctorSelect.addEventListener('change', updateAvailableDates);
+
+    function updateAvailableDates() {
+      const selectedDoctorId = doctorSelect.value;
+      const appointments = JSON.parse(localStorage.getItem('appointments')) || [];
+
+      const bookedDates = appointments
+        .filter(a => a.doctorId == selectedDoctorId)
+        .map(a => a.date);
+
+      const dateInput = document.getElementById('date');
+      dateInput.addEventListener('input', function() {
+        if (bookedDates.includes(this.value)) {
+          alert('This doctor is already booked on this date. Please select another date.');
+          this.value = '';
+        }
+      });
+    }
+
+    // Booking submission
+    document.getElementById('bookingForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const booking = {
+        doctorId: doctorSelect.value,
+        doctorName: doctors.find(d => d.id == doctorSelect.value).name,
+        patientName: document.getElementById('patientName').value,
+        date: document.getElementById('date').value,
+        time: document.getElementById('time').value
+      };
+
+      const existing = JSON.parse(localStorage.getItem('appointments')) || [];
+      existing.push(booking);
+      localStorage.setItem('appointments', JSON.stringify(existing));
+
+      alert(`Appointment booked for ${booking.patientName} with ${booking.doctorName} on ${booking.date} at ${booking.time}`);
+      document.getElementById('bookingForm').reset();
+    });
+  </script>
+</body>
+</html>

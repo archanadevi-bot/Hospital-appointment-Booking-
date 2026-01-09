@@ -1,0 +1,194 @@
+/* General body styling */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f0f3f5;
+  color: #2c3e50;
+}
+
+/* Header / banner */
+h1 {
+  text-align: center;
+  margin: 20px 0;
+  font-size: 2em;
+  color: #2980b9;
+}
+
+/* Page headings */
+h2 {
+  text-align: center;
+  margin: 20px 0;
+  color: #34495e;
+}
+
+/* Navigation links */
+a {
+  display: inline-block;
+  margin-top: 20px;
+  text-decoration: none;
+  color: #2980b9;
+  font-weight: bold;
+  transition: 0.3s;
+}
+a:hover { color: #3498db; }
+
+/* Form styling */
+form {
+  display: flex;
+  flex-direction: column;
+  max-width: 450px;
+  margin: 30px auto;
+  padding: 25px;
+  border-radius: 12px;
+  background-color: #ffffff;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+}
+
+label {
+  margin-top: 15px;
+  font-weight: 600;
+}
+
+input, select {
+  margin-top: 5px;
+  padding: 10px;
+  font-size: 1em;
+  border-radius: 6px;
+  border: 1px solid #bdc3c7;
+  outline: none;
+  transition: 0.3s;
+}
+
+input:focus, select:focus {
+  border-color: #2980b9;
+  box-shadow: 0 0 5px rgba(41,128,185,0.5);
+}
+
+/* Buttons */
+button {
+  margin-top: 25px;
+  padding: 12px;
+  font-size: 1em;
+  border: none;
+  border-radius: 8px;
+  background-color: #2980b9;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+button:hover {
+  background-color: #3498db;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+/* Appointment list */
+ul {
+  list-style: none;
+  padding: 0;
+  max-width: 650px;
+  margin: 30px auto;
+}
+
+li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff;
+  margin: 10px 0;
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+  transition: 0.3s;
+}
+
+li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+/* Cancel buttons */
+ul li button {
+  padding: 6px 12px;
+  font-size: 0.9em;
+  border-radius: 6px;
+  border: none;
+  background-color: #e74c3c;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+ul li button:hover {
+  background-color: #c0392b;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Doctor grid for doctors.html */
+.doctor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  max-width: 900px;
+  margin: 30px auto;
+}
+
+.doctor-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.doctor-card:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.doctor-card h3 {
+  margin: 10px 0 5px 0;
+}
+
+.doctor-card .specialty {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: #2980b9;
+  color: white;
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+
+.doctor-card button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #27ae60;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.doctor-card button:hover {
+  background-color: #2ecc71;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 500px) {
+  form, ul, .doctor-grid {
+    width: 90%;
+    padding: 15px;
+  }
+  li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  ul li button {
+    margin-top: 10px;
+    align-self: flex-end;
+  }
+}
