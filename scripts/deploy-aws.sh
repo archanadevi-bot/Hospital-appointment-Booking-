@@ -75,3 +75,4 @@ else
     sudo docker logs hospital-booking-app
     exit 1
 fi
+

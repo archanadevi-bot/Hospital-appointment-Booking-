@@ -30,3 +30,4 @@ services:
 networks:
   hospital-network:
     driver: bridge
+
