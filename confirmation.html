@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Appointment Confirmation</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <h2>All Appointments</h2>
+  <ul id="appointmentsList"></ul>
+  <a href="booking.html">Book Another</a>
+
+  <script src="js/app.js"></script>
+  <script>
+    const appointments = JSON.parse(localStorage.getItem('appointments')) || [];
+    const ul = document.getElementById('appointmentsList');
+
+    if(appointments.length === 0) {
+      ul.innerHTML = "<li>No appointments booked yet</li>";
+    } else {
+      appointments.forEach((a, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${a.patientName} - ${a.doctorName} on ${a.date} at ${a.time}`;
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', () => {
+          appointments.splice(index, 1);
+          localStorage.setItem('appointments', JSON.stringify(appointments));
+          location.reload();
+        });
+
+        li.appendChild(cancelBtn);
+        ul.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>

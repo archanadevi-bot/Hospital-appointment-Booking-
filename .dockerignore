@@ -1,0 +1,14 @@
+.git
+.gitignore
+.dockerignore
+*.md
+docker-compose.yml
+docker-compose.*.yml
+Jenkinsfile
+k8s/
+helm/
+scripts/
+tests/
+.vscode/
+.idea/
+Hospital-appointment-Booking--main/
