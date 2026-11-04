@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hospital-booking-config
+  labels:
+    app: hospital-booking
+    tier: frontend
+data:
+  APP_ENV: "production"
+  APP_NAME: "Hospital Appointment Booking System"
+  SERVER_PORT: "80"
+  HEALTH_CHECK_PATH: "/healthz"
+

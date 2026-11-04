@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hospital-system
+  labels:
+    app.kubernetes.io/name: hospital-system
+    app.kubernetes.io/part-of: hospital-appointment-booking
+

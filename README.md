@@ -13,71 +13,106 @@ An enterprise-ready DevOps implementation for a production-grade **Hospital Appo
 
 ## 📑 Table of Contents
 
+- [Project Overview & Problem Statement](#-project-overview--problem-statement)
 - [DevOps Architecture](#-devops-architecture)
-- [Project Overview & Application Workflow](#-project-overview--application-workflow)
-- [Tools & Technologies](#-tools--technologies)
+- [Tools & Technology Stack](#-tools--technology-stack)
+- [Documentation Index](#-documentation-index)
 - [Repository Directory Structure](#-repository-directory-structure)
-- [Stage 1: Docker Containerization](#-stage-1-docker-containerization)
-- [Stage 2: Docker Compose Orchestration](#-stage-2-docker-compose-orchestration)
-- [Stage 3: Git & GitHub Version Control](#-stage-3-git--github-version-control)
-- [Stage 4: Jenkins CI/CD Automation](#-stage-4-jenkins-cicd-automation)
-- [Stage 5: Kubernetes Container Orchestration](#-stage-5-kubernetes-container-orchestration)
-- [Stage 6: AWS Cloud Deployment](#-stage-6-aws-cloud-deployment)
-- [Placement Interview Preparation Guide](#-placement-interview-preparation-guide)
+- [Step-by-Step Implementation Guide](#-step-by-step-implementation-guide)
+  - [1. Running Frontend Locally](#1-running-the-frontend-locally)
+  - [2. Building Docker Image](#2-building-the-docker-image)
+  - [3. Running Docker Container](#3-running-the-docker-container)
+  - [4. Multi-Container with Docker Compose](#4-using-docker-compose)
+  - [5. GitHub Version Control Workflow](#5-pushing-code-to-github)
+  - [6. Installing & Configuring Jenkins](#6-installing-and-configuring-jenkins)
+  - [7. Executing Jenkins CI/CD Pipeline](#7-executing-the-cicd-pipeline)
+  - [8. Starting Local Kubernetes Cluster](#8-starting-kubernetes)
+  - [9. Applying Kubernetes Manifests](#9-applying-kubernetes-manifests)
+  - [10. Scaling the Application](#10-scaling-the-application)
+  - [11. Performing Zero-Downtime Rolling Updates](#11-performing-rolling-updates)
+  - [12. Rolling Back a Deployment](#12-rolling-back-a-deployment)
+- [Testing & Verification Results](#-testing--verification-results)
+- [Troubleshooting Guide](#-troubleshooting-guide)
+- [Project Limitations & Realities](#-project-limitations)
+- [Future Enhancements](#-future-enhancements)
+- [Placement Interview Preparation](#-placement-interview-preparation)
+
+---
+
+## 🩺 Project Overview & Problem Statement
+
+### Problem Statement
+Traditional static web applications often suffer from environment inconsistency ("works on my machine"), manual, error-prone deployment procedures, downtime during application updates, and lack of automated health monitoring and self-healing when services fail.
+
+### Project Objectives
+1. **Containerization**: Standardize the runtime environment using lightweight Alpine Linux and Nginx reverse proxy.
+2. **Automated CI/CD**: Eliminate manual builds and tests using a declarative 6-stage Jenkins pipeline triggered by GitHub pushes.
+3. **Container Orchestration**: Ensure 100% uptime, horizontal scalability, automated failover, and zero-downtime rolling updates using Kubernetes.
+4. **Cloud Readiness**: Define an automated AWS EC2 cloud hosting architecture without incurring unnecessary cloud costs during development.
+
+### Application Workflow & Features
+The application is a pure client-side Multi-Page Application (MPA) for outpatient medical appointments:
+1. **`index.html` (Landing Page)**: Hero header with medical banner image, leading users to doctor directory or booking form.
+2. **`doctors.html` (Doctor Directory)**: Dynamically renders doctor cards from `app.js` (Dr. Smith, Dr. Jones, etc. across 8 specialties). Clicking "Book Appointment" saves the selected doctor ID into browser `localStorage` and routes to `booking.html`.
+3. **`booking.html` (Appointment Form)**: Doctor dropdown auto-prefilled from directory selection. Features conflict detection (prevents overlapping bookings for the same doctor on the same date). Stores finalized appointments into `localStorage`.
+4. **`confirmation.html` (Bookings Dashboard)**: Lists all confirmed appointments from `localStorage` with real-time cancel/delete capabilities.
 
 ---
 
 ## 🏗️ DevOps Architecture
 
 ```mermaid
-flowchart LR
-    A["Developer / Git Push"] --> B["GitHub Repository"]
-    B -->|"Webhook / SCM Polling"| C["Jenkins CI/CD Engine (:8081)"]
-    subgraph Jenkins_Pipeline["Jenkins Automation Engine"]
-        C1["Stage 1: Checkout"] --> C2["Stage 2: Static Validation"]
-        C2 --> C3["Stage 3: Docker Build"]
-        C3 --> C4["Stage 4: Smoke Test (:8085)"]
-        C4 --> C5["Stage 5: Zero-Downtime Deploy (:8080)"]
-        C5 --> C6["Stage 6: Post-Deploy Audit"]
+flowchart TD
+    DEV["Developer Workstation"] -->|"git push origin main"| GITHUB["GitHub Repository\n(archanadevi-bot/Hospital-appointment-Booking-)"]
+    GITHUB -->|"Webhook / SCM Poll (H/5)"| JENKINS["Jenkins Controller\n(Host Port :8081)"]
+    
+    subgraph PIPELINE["Jenkins Declarative Pipeline"]
+        J1["1. Checkout Source"] --> J2["2. Static Asset Validation"]
+        J2 --> J3["3. Docker Build (hospital-booking:${BUILD})"]
+        J3 --> J4["4. Ephemeral Smoke Test (:8085)"]
+        J4 --> J5["5. Kubernetes Deployment"]
+        J5 --> J6["6. Post-Deploy Runtime Audit"]
     end
-    C --> Jenkins_Pipeline
-    C5 --> D["Docker Container: hospital-booking-app (:8080)"]
-    C5 --> E["Kubernetes Cluster (Minikube / EKS)"]
-    subgraph K8s["Kubernetes Cluster"]
-        E1["Service (NodePort :30080)"] --> E2["Pod Replica 1 (Nginx Alpine)"]
-        E1 --> E3["Pod Replica 2 (Nginx Alpine)"]
+    JENKINS --> PIPELINE
+
+    subgraph K8S["Kubernetes Orchestration Cluster"]
+        J5 -->|"kubectl apply"| SVC["NodePort Service: hospital-booking-service\nNodePort: 30080 -> TargetPort: 80"]
+        SVC --> POD1["Pod Replica 1\n(Nginx Alpine :80)\nProbes: /healthz"]
+        SVC --> POD2["Pod Replica 2\n(Nginx Alpine :80)\nProbes: /healthz"]
     end
-    E --> K8s
-    C5 --> F["AWS EC2 Production Host (:80)"]
+
+    subgraph STANDALONE["Local Container Fallback"]
+        J5 -.->|"Fallback / Compose"| APP["Container: hospital-booking-app\nHost Port :8080"]
+    end
 ```
 
 ---
 
-## 🩺 Project Overview & Application Workflow
-
-The **Hospital Appointment Booking System** is a pure client-side multi-page application (MPA) designed for outpatient scheduling:
-
-1. **`index.html` (Landing Page)**: Hero header with medical banner image, leading users to doctor directory or booking form.
-2. **`doctors.html` (Doctor Directory)**: Dynamically renders doctor cards from `app.js` (Dr. Smith, Dr. Jones, etc. across 8 specialties). Clicking "Book Appointment" saves the selected doctor ID into browser `localStorage` and routes to `booking.html`.
-3. **`booking.html` (Appointment Form)**: Doctor dropdown auto-prefilled from directory selection. Features conflict detection (prevents overlapping bookings for the same doctor on the same date). Stores finalized appointments into `localStorage`.
-4. **`confirmation.html` (Bookings Dashboard)**: Lists all confirmed appointments from `localStorage` with real-time cancel/delete capabilities.
-5. **`style.css`**: Responsive UI styling, card layouts, form designs, and mobile breakpoints.
-6. **`app.js`**: Data repository containing doctor details and specialties.
-
----
-
-## 🛠️ Tools & Technologies
+## 🛠️ Tools & Technology Stack
 
 | Domain | Technology | Version | Purpose |
 |---|---|---|---|
 | **Frontend** | HTML5, CSS3, JavaScript (ES6) | Standard | Client-side application with localStorage state |
-| **Web Server** | Nginx Alpine | 1.27-alpine | High-performance reverse proxy & static asset server |
+| **Web Server** | Nginx Alpine | 1.27-alpine | High-performance reverse proxy, gzip compression & caching |
 | **Containerization** | Docker Engine | 29.x / Latest | Application packaging with custom non-root configs |
 | **Multi-Container** | Docker Compose | v2 spec | Local multi-service orchestration with resource limits |
 | **Version Control** | Git & GitHub | 2.x | Source control, branching, release tags, and webhooks |
 | **CI/CD Automation**| Jenkins | LTS | Declarative pipeline for automated build, test & deploy |
 | **Orchestration** | Kubernetes (k8s) | 1.36+ | Declarative deployments, replica sets, NodePort routing |
-| **Cloud Hosting** | Amazon Web Services (AWS) | EC2 | Cloud virtual machine hosting with Security Groups |
+| **Cloud Hosting** | Amazon Web Services (AWS) | EC2 (Blueprint) | Cloud virtual machine hosting with Security Groups |
+
+---
+
+## 📚 Documentation Index
+
+Comprehensive engineering guides are available in the [`docs/`](file:///c:/Users/archa/Downloads/Hospital-appointment-Booking--main/docs) directory:
+
+1. [**`docs/ARCHITECTURE.md`**](file:///c:/Users/archa/Downloads/Hospital-appointment-Booking--main/docs/ARCHITECTURE.md): System architecture, data flow diagrams, network mapping, and security models.
+2. [**`docs/DOCKER_GUIDE.md`**](file:///c:/Users/archa/Downloads/Hospital-appointment-Booking--main/docs/DOCKER_GUIDE.md): In-depth Dockerfile, Nginx optimization, and Compose reference.
+3. [**`docs/JENKINS_CICD.md`**](file:///c:/Users/archa/Downloads/Hospital-appointment-Booking--main/docs/JENKINS_CICD.md): Jenkins setup, plugins, pipeline stage mechanics, and webhook troubleshooting.
+4. [**`docs/KUBERNETES_GUIDE.md`**](file:///c:/Users/archa/Downloads/Hospital-appointment-Booking--main/docs/KUBERNETES_GUIDE.md): Manifest specifications, rolling updates, self-healing, and scaling procedures.
+5. [**`docs/AWS_FUTURE_DEPLOYMENT.md`**](file:///c:/Users/archa/Downloads/Hospital-appointment-Booking--main/docs/AWS_FUTURE_DEPLOYMENT.md): Future cloud deployment blueprint for EC2 and EKS with cost analysis.
+6. [**`docs/INTERVIEW_PREPARATION.md`**](file:///c:/Users/archa/Downloads/Hospital-appointment-Booking--main/docs/INTERVIEW_PREPARATION.md): 35+ technical interview questions with answers and a 2-minute elevator pitch.
 
 ---
 
@@ -93,6 +128,13 @@ Hospital-appointment-Booking/
 ├── confirmation.html             # Confirmed appointments management page
 ├── css/
 │   └── style.css                 # CSS stylesheet in standard directory structure
+├── docs/
+│   ├── ARCHITECTURE.md           # System & network architecture document
+│   ├── AWS_FUTURE_DEPLOYMENT.md  # Cloud hosting specification (Blueprint)
+│   ├── DOCKER_GUIDE.md           # Dockerfile & Nginx deep dive
+│   ├── INTERVIEW_PREPARATION.md  # 35+ Placement interview Q&As & elevator pitch
+│   ├── JENKINS_CICD.md           # Pipeline stages & credentials reference
+│   └── KUBERNETES_GUIDE.md       # Cluster manifests & scaling guide
 ├── docker-compose.yml            # Multi-container orchestration definition
 ├── Dockerfile                    # Production-grade multi-stage / Alpine Nginx image
 ├── doctors.html                  # Dynamic doctor card listing page
@@ -101,163 +143,83 @@ Hospital-appointment-Booking/
 ├── js/
 │   └── app.js                    # JavaScript data source in standard directory structure
 ├── k8s/
+│   ├── configmap.yaml            # Environment metadata ConfigMap
 │   ├── deployment.yaml           # Kubernetes Deployment (2 Replicas, probes, limits)
+│   ├── namespace.yaml            # Dedicated namespace definition
 │   └── service.yaml              # Kubernetes Service (NodePort 30080)
 ├── nginx.conf                    # Production Nginx server configuration with /healthz
-├── README.md                     # Comprehensive documentation & interview guide
+├── README.md                     # Comprehensive main documentation & guide
 └── scripts/
     └── deploy-aws.sh             # Bash automation script for EC2 server bootstrap
 ```
 
 ---
 
-## 🐳 Stage 1: Docker Containerization
+## 🚀 Step-by-Step Implementation Guide
 
-### 1. Production `Dockerfile` Explanation
-```dockerfile
-FROM nginx:1.27-alpine
-RUN rm -rf /usr/share/nginx/html/*
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY index.html doctors.html booking.html confirmation.html style.css app.js 852d3ae66e2f216bcc1e074c7e0da8da.jpg /usr/share/nginx/html/
-COPY css/ /usr/share/nginx/html/css/
-COPY js/ /usr/share/nginx/html/js/
-RUN chmod -R 755 /usr/share/nginx/html
-EXPOSE 80
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:80/healthz || exit 1
-CMD ["nginx", "-g", "daemon off;"]
+### 1. Running the Frontend Locally
+Open any browser and open `index.html` directly or serve via Python / Node.js:
+```bash
+# Serve locally using Node.js or Python
+npx http-server -p 3000 .
+# Open in browser: http://localhost:3000
 ```
 
-**Key Highlights:**
-- **`nginx:1.27-alpine`**: Weighs ~21MB, minimizing the container attack surface and pull times.
-- **`HEALTHCHECK`**: Automatically queries `http://127.0.0.1:80/healthz` every 30 seconds; reports healthy status to Docker daemon.
-- **`nginx -g "daemon off;"`**: Prevents Nginx from daemonizing into the background, which would cause PID 1 to exit and terminate the container.
-
-### 2. Custom `nginx.conf` Highlights
-- **Dual-Stack IP Binding**: Binds to both IPv4 (`listen 80;`) and IPv6 (`listen [::]:80;`).
-- **Gzip Compression**: Compresses HTML, CSS, JS, and JSON on the fly, reducing bandwidth by up to 70%.
-- **Security Headers**: Includes `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, and `X-XSS-Protection`.
-- **`/healthz` Endpoint**: Returns `200 "healthy\n"` without touching disk logs, used by Kubernetes and AWS Application Load Balancers (ALB).
-- **Static Asset Caching**: 7-day browser caching with `Cache-Control: public, no-transform`.
-
-### 3. Docker Execution Commands
+### 2. Building the Docker Image
 ```bash
-# 1. Build the Docker image
+# Build the production Docker image (weighs only 21.1 MB)
 docker build -t hospital-booking:latest .
 
-# 2. Run container mapping host port 8080 to container port 80
+# Verify image creation
+docker images hospital-booking:latest
+```
+
+### 3. Running the Docker Container
+```bash
+# Run container mapping host port 8080 to container port 80
 docker run -d --name hospital-booking-app -p 8080:80 hospital-booking:latest
 
-# 3. Check container status & health
+# Check running container and health status
 docker ps -f name=hospital-booking-app
 
-# 4. Verify HTTP connectivity & health check
+# Verify in browser
 curl -I http://localhost:8080/
 curl http://localhost:8080/healthz
 ```
 
----
-
-## 🐙 Stage 2: Docker Compose Orchestration
-
-```yaml
-services:
-  hospital-booking-frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: hospital-booking:latest
-    container_name: hospital-booking-app
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/healthz || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 256M
-        reservations:
-          cpus: '0.10'
-          memory: 64M
-    networks:
-      - hospital-network
-
-networks:
-  hospital-network:
-    driver: bridge
-```
-
+### 4. Using Docker Compose
 ```bash
-# Build and start services in the background
+# Launch application with resource limits and isolated network
 docker compose up -d --build
 
-# View running services
+# View container status
 docker compose ps
 
-# Stop containers and networks
+# Stop containers and bridge network
 docker compose down
 ```
 
----
-
-## 🐙 Stage 3: Git & GitHub Version Control
-
-### 1. Repository Configuration
-- **Remote Repository URL**: `https://github.com/archanadevi-bot/Hospital-appointment-Booking-.git`
-- **Default Production Branch**: `main`
-- **Initial Remote History**: Preserved and integrated with original commit `a74c2ab Add files via upload`.
-
-### 2. Git Status & Verification Commands
+### 5. Pushing Code to GitHub
 ```bash
-# Check repository status
+# Check repository status and branch tracking
 git status
-
-# Inspect branch and remote tracking
 git branch -vv
 
-# Check verified commit history
-git log --graph --oneline -n 5
-
-# Remote URL verification
-git remote -v
-```
-
-### 3. Pushing Future Code Changes
-```bash
-# 1. Stage modified files
+# Stage and commit changes
 git add .
+git commit -m "feat: complete DevOps pipeline implementation"
 
-# 2. Commit changes with semantic message
-git commit -m "feat: your feature description"
-
-# 3. Push to GitHub main branch
+# Push to GitHub main branch
 git push origin main
 ```
 
----
-
-## ⚙️ Stage 4: Jenkins CI/CD Automation
-
-Jenkins automates the lifecycle from source code commit to production container roll-out.
-
-### 1. Port Architecture & Isolation
-- **Production Hospital Application**: Runs on host port `8080` (`http://localhost:8080`).
-- **Jenkins Controller Dashboard**: Runs on host port `8081` (`http://localhost:8081`) to prevent any port conflict.
-
-### 2. Jenkins Installation via Docker (Windows 11 Best Practice)
-To avoid Java runtime version conflicts on the host (where Java 25 is installed, while Jenkins requires Java 17/21 LTS), Jenkins is run inside an official LTS container with Docker socket integration:
-
+### 6. Installing and Configuring Jenkins
+To prevent port conflict with port 8080, Jenkins runs on host port **8081**:
 ```bash
-# Create persistent Docker volume for Jenkins configuration
+# Create persistent volume
 docker volume create jenkins_home
 
-# Run Jenkins on port 8081 with Docker daemon socket access
+# Run Jenkins with Docker socket integration
 docker run -d \
   --name jenkins \
   --restart unless-stopped \
@@ -267,147 +229,129 @@ docker run -d \
   -v /var/run/docker.sock:/var/run/docker.sock \
   jenkins/jenkins:lts
 
-# Retrieve the initial administrator password to unlock Jenkins
+# Retrieve admin password
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
+Open `http://localhost:8081`, complete the setup wizard, and install the **Docker Pipeline** plugin.
 
-### 3. Required Jenkins Plugins
-Install only the necessary plugins from **Manage Jenkins** → **Plugins**:
-- `Pipeline` (Core pipeline engine)
-- `Git` & `GitHub Integration` (SCM and webhook triggers)
-- `Docker Pipeline` (Enables Docker execution within pipeline steps)
-- `AnsiColor` (Colorizes build console output)
+### 7. Executing the CI/CD Pipeline
+1. In Jenkins: Create **New Item** &rarr; **Pipeline** named `hospital-booking-pipeline`.
+2. Set SCM to **Git**, Repository URL to `https://github.com/archanadevi-bot/Hospital-appointment-Booking-.git`, Branch `*/main`, Script Path `Jenkinsfile`.
+3. Click **Build Now** to trigger the 6-stage pipeline.
 
-### 4. Jenkins Pipeline Workflow (`Jenkinsfile`)
-The declarative pipeline consists of 6 automated stages:
-1. **1. Checkout**: Clones `main` branch from `https://github.com/archanadevi-bot/Hospital-appointment-Booking-.git` and logs commit hash.
-2. **2. Static Validation**: Enforces integrity checks ensuring `index.html`, `doctors.html`, `booking.html`, `confirmation.html`, `style.css`, `app.js`, `Dockerfile`, and `nginx.conf` exist.
-3. **3. Docker Build**: Builds `hospital-booking:${BUILD_NUMBER}` and tags it as `hospital-booking:latest`.
-4. **4. Automated Testing**: Starts an ephemeral container on test port `8085` and verifies:
-   - `/healthz` returns `200 OK`
-   - `index.html` returns `200 OK`
-   - `doctors.html` returns `200 OK`
-   - `css/style.css` and `js/app.js` return `200 OK`
-   - Container logs are error-free; cleans up test container.
-5. **5. Deployment**: Safely replaces the running container with the validated image on port `8080` (`--restart unless-stopped`).
-6. **6. Post-Deployment Verification**: Audits `docker ps`, `docker images`, and performs live HTTP status checks against `http://localhost:8080/`.
+### 8. Starting Kubernetes
+In **Docker Desktop on Windows**:
+1. Open Docker Desktop &rarr; Click **Settings (Gear Icon)**.
+2. Select **Kubernetes** &rarr; Check **Enable Kubernetes**.
+3. Click **Apply & restart** and wait for the Kubernetes icon to turn green.
 
-### 5. Automated Pipeline Triggers
-- **GitHub Webhook (`githubPush()`)**:
-  - In GitHub repo: **Settings** → **Webhooks** → **Add webhook**.
-  - **Payload URL**: `http://<your-public-jenkins-ip>:8081/github-webhook/`
-  - **Content type**: `application/json`
-  - **Events**: *Just the push event*.
-- **SCM Polling Fallback (`pollSCM('H/5 * * * *')`)**:
-  - For local development where localhost is behind NAT/firewall, Jenkins polls GitHub every 5 minutes and automatically triggers a build whenever a new commit is detected.
-
----
-
-## ☸️ Stage 5: Kubernetes Container Orchestration
-
-Kubernetes (K8s) provides declarative container orchestration, automated healing, scaling, and rolling updates.
-
-### 1. Deployment Specification (`k8s/deployment.yaml`)
-- **`replicas: 2`**: Runs two identical pods for high availability.
-- **`strategy: RollingUpdate`**: Guarantees zero downtime by spinning up the new version (`maxSurge: 1`) before removing the old version (`maxUnavailable: 0`).
-- **`resources`**: Enforces strict requests (`100m` CPU, `64Mi` RAM) and limits (`250m` CPU, `128Mi` RAM) to prevent noisy-neighbor memory exhaustion.
-- **`readinessProbe`**: Ensures K8s traffic is only routed to the pod when `/healthz` returns 200.
-- **`livenessProbe`**: Detects hung processes and restarts the pod automatically.
-
-### 2. Service Specification (`k8s/service.yaml`)
-- **`type: NodePort`**: Exposes port `80` inside the cluster on static port `30080` across all cluster nodes.
-
-### 3. Deployment Commands
+### 9. Applying Kubernetes Manifests
 ```bash
-# 1. Apply deployment manifest
-kubectl apply -f k8s/deployment.yaml
+# Check cluster connectivity
+kubectl cluster-info
+kubectl get nodes
 
-# 2. Apply service manifest
-kubectl apply -f k8s/service.yaml
+# Deploy all manifests
+kubectl apply -f k8s/
 
-# 3. Check deployment status
-kubectl get deployments
-kubectl rollout status deployment/hospital-booking-deployment
-
-# 4. Inspect pods
+# Verify deployments, pods, and services
+kubectl get deployments -l app=hospital-booking
 kubectl get pods -l app=hospital-booking -o wide
+kubectl get svc hospital-booking-service
 
-# 5. Check service and exposed NodePort
-kubectl get services hospital-booking-service
-
-# 6. Test service locally (Minikube / Docker Desktop)
-curl http://localhost:30080/healthz
+# Access via browser
+http://localhost:30080/
 ```
 
----
-
-## ☁️ Stage 6: AWS Cloud Deployment
-
-Deploying the Hospital Booking Application on Amazon Web Services (AWS) using EC2.
-
-### Step 1: Launch an EC2 Instance
-1. Sign in to AWS Management Console → **EC2** → **Launch Instance**.
-2. **Name**: `Hospital-Booking-Server`
-3. **AMI**: `Ubuntu Server 22.04 LTS (HVM)` or `Amazon Linux 2023`.
-4. **Instance Type**: `t2.micro` (AWS Free Tier eligible) or `t3.small`.
-5. **Key Pair**: Select or create an RSA key pair (`hospital-key.pem`).
-
-### Step 2: Configure Security Group (Firewall)
-Create an EC2 Security Group with the following Inbound Rules:
-
-| Type | Protocol | Port Range | Source | Description |
-|---|---|---|---|---|
-| **SSH** | TCP | 22 | `My IP` | Secure SSH management |
-| **HTTP** | TCP | 80 | `0.0.0.0/0` | Public web traffic |
-| **Custom TCP** | TCP | 8080 | `0.0.0.0/0` | Jenkins / Docker alternative port |
-| **Custom TCP** | TCP | 30080 | `0.0.0.0/0` | Kubernetes NodePort access |
-
-### Step 3: Connect to EC2 & Deploy
+### 10. Scaling the Application
 ```bash
-# Connect via SSH
-ssh -i hospital-key.pem ubuntu@<ec2-public-ip>
+# Scale up to 3 replicas
+kubectl scale deployment hospital-booking-deployment --replicas=3
 
-# Clone repository
-git clone https://github.com/archanadevi-bot/Hospital-appointment-Booking-.git
-cd Hospital-appointment-Booking-
+# Verify 3 pods running
+kubectl get pods -l app=hospital-booking
 
-# Run automated deployment script
-chmod +x scripts/deploy-aws.sh
-./scripts/deploy-aws.sh
+# Scale back to 2 replicas
+kubectl scale deployment hospital-booking-deployment --replicas=2
 ```
 
-### Step 4: Access Application
-Open your browser and navigate to:
-```text
-http://<EC2-PUBLIC-IP>/
+### 11. Performing Rolling Updates
+```bash
+# Update container image with zero downtime
+kubectl set image deployment/hospital-booking-deployment \
+  hospital-booking-container=hospital-booking:latest --record=true
+
+# Monitor rollout progression in real-time
+kubectl rollout status deployment/hospital-booking-deployment
+```
+
+### 12. Rolling Back a Deployment
+```bash
+# View rollout revision history
+kubectl rollout history deployment/hospital-booking-deployment
+
+# Undo to previous revision
+kubectl rollout undo deployment/hospital-booking-deployment
+
+# Confirm rollback completion
+kubectl rollout status deployment/hospital-booking-deployment
 ```
 
 ---
 
-## 🎯 Placement Interview Preparation Guide
+## 🧪 Testing & Verification Results
 
-### Top DevOps Interview Questions for this Project
-
-#### Q1: Why did you choose Nginx Alpine as the base image for this frontend?
-> **Answer:** Alpine Linux is an ultra-lightweight Linux distribution (~5MB base). When combined with Nginx, the final image size is under 25MB compared to 150MB+ for Debian-based images. This significantly reduces security vulnerabilities (smaller attack surface), accelerates CI/CD image build and download times, and reduces cloud storage and bandwidth costs.
-
-#### Q2: What is the difference between `readinessProbe` and `livenessProbe` in Kubernetes?
-> **Answer:** 
-> - **`readinessProbe`** determines if a pod is ready to accept incoming user traffic. If it fails, Kubernetes removes the pod's IP from the Service endpoints so users do not receive errors, but the container is **not** killed.
-> - **`livenessProbe`** determines if the container process is still alive and functioning. If it fails, Kubernetes immediately kills and restarts the container based on the restart policy.
-
-#### Q3: Why did you configure `/healthz` inside `nginx.conf` instead of checking `index.html`?
-> **Answer:** The `/healthz` endpoint is a dedicated, lightweight endpoint that returns `200 "healthy\n"` directly from memory with `access_log off;`. Checking `index.html` involves disk I/O, loads asset contents into memory, and pollutes access logs with thousands of probe requests every hour.
-
-#### Q4: How does zero-downtime deployment work in your Kubernetes configuration?
-> **Answer:** We configured `RollingUpdate` with `maxSurge: 1` and `maxUnavailable: 0`. During an update, Kubernetes spins up 1 new pod with the new container image first. Traffic is only routed to the new pod once its `readinessProbe` succeeds. Only then is the old pod gracefully terminated. Thus, 100% service capacity is maintained throughout deployment.
-
-#### Q5: How does a GitHub Webhook communicate with your Jenkins CI/CD pipeline?
-> **Answer:** When a developer pushes commits to GitHub, GitHub sends an HTTP POST payload with JSON metadata to Jenkins' webhook listener URL (`http://<jenkins-url>:8081/github-webhook/`). Jenkins parses the repository URL and branch name, matches it against configured Pipeline jobs, and instantly triggers the build stages without polling.
+| Test Target | Command Executed | Result Status | Evidence Output |
+|---|---|---|---|
+| **Root Landing Page** | `curl -I http://localhost:8080/` | **200 OK** | Nginx 1.27.5 serving `index.html` with security headers |
+| **Health Check Endpoint** | `curl http://localhost:8080/healthz` | **200 OK** | Body: `healthy\n` (zero access log pollution) |
+| **Doctors Directory** | `curl -I http://localhost:8080/doctors.html` | **200 OK** | Serves dynamic doctor catalog |
+| **Static Stylesheet** | `curl -I http://localhost:8080/css/style.css` | **200 OK** | Header: `Cache-Control: public, no-transform` |
+| **JavaScript Dataset** | `curl -I http://localhost:8080/js/app.js` | **200 OK** | Verified 8 specialist doctor objects |
+| **Image Asset** | `curl -I http://localhost:8080/852d3ae66e2f216bcc1e074c7e0da8da.jpg` | **200 OK** | 109 KB medical hero banner image |
+| **Docker Compose** | `docker compose up -d --build` | **Healthy** | Container `hospital-booking-app` up on port 8080 |
+| **Git & GitHub** | `git push origin main` | **Synced** | Latest commit `7474fab` verified on GitHub |
 
 ---
 
-## 👨‍💻 Author & Maintainer
-- **Hospital Appointment Booking DevOps Project**
-- Developed for production deployment and placement interview demonstrations.
-- **Repository**: [archanadevi-bot/Hospital-appointment-Booking-](https://github.com/archanadevi-bot/Hospital-appointment-Booking-)
+## 🔧 Troubleshooting Guide
+
+| Issue | Root Cause | Solution |
+|---|---|---|
+| `docker daemon not running` | Docker Desktop service is stopped. | Open Docker Desktop from Windows Start Menu and wait for status "Engine running". |
+| `localhost:8080 connection refused` | Port conflict or container stopped. | Check running containers via `docker ps` and port availability with `Get-NetTCPConnection -LocalPort 8080`. |
+| `healthcheck connection refused` | Alpine Nginx resolving `localhost` to IPv6 `::1`. | Bind Nginx to both IPv4/IPv6 (`listen 80; listen [::]:80;`) and probe `http://127.0.0.1:80/healthz`. |
+| `ImagePullBackOff` in Kubernetes | Pod cannot find image in registry or local cache. | Tag image locally (`docker tag hospital-booking:latest`) and ensure `imagePullPolicy: IfNotPresent` is set. |
+| `CrashLoopBackOff` in Kubernetes | Process inside container exited. | Run `kubectl logs <pod-name>` to inspect errors. Ensure `CMD ["nginx", "-g", "daemon off;"]` is used. |
+| Jenkins port conflict | Jenkins defaulting to port 8080. | Map Jenkins host port to 8081 (`-p 8081:8080`), preserving port 8080 for hospital app. |
+
+---
+
+## ⚠️ Project Limitations
+
+1. **Client-Side Storage**: Appointment records are stored in browser `localStorage`. Appointments are confined to the specific browser and device used by the patient.
+2. **No Backend Database**: There is currently no shared relational database (e.g. PostgreSQL, MySQL) or central server-side API.
+3. **No User Authentication**: Does not currently feature login, role-based access control (RBAC), or JWT tokens.
+4. **Not HIPAA Compliant**: This implementation is designed as a DevOps deployment demonstration project and is not intended for real-world patient Protected Health Information (PHI).
+
+---
+
+## 🔮 Future Enhancements
+
+1. **Backend Integration**: Implement a Python FastAPI or Node.js Express backend to manage appointments in a persistent PostgreSQL database.
+2. **Authentication**: Implement OAuth2 / JWT authentication with doctor and patient roles.
+3. **Helm Charts**: Package Kubernetes manifests into a modular Helm chart for single-command deployments across Dev, Staging, and Production environments.
+4. **Cloud Migration**: Deploy to AWS using an Amazon EKS cluster with AWS Application Load Balancer and Route 53 DNS.
+
+---
+
+## 👨‍💻 Placement Interview Preparation
+
+For a comprehensive collection of **35+ DevOps interview questions & answers** and a **2-minute interview pitch**, please see [**`docs/INTERVIEW_PREPARATION.md`**](file:///c:/Users/archa/Downloads/Hospital-appointment-Booking--main/docs/INTERVIEW_PREPARATION.md).
+
+---
+
+## 📌 Repository Information
+- **Maintainer**: DevOps Engineering Team
+- **GitHub Repository**: [archanadevi-bot/Hospital-appointment-Booking-](https://github.com/archanadevi-bot/Hospital-appointment-Booking-)
+- **Branch**: `main`
