@@ -159,3 +159,4 @@
 1. Run `kubectl get pods` to identify the failing pod name.
 2. Run `kubectl logs <pod-name> --previous` to see the exit reason before the last crash.
 3. Run `kubectl describe pod <pod-name>` to inspect exit codes (e.g., Exit Code 137 indicates OOMKilled, Exit Code 1 indicates application syntax error).
+

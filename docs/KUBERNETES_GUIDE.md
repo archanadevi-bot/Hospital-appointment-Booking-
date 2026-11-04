@@ -248,3 +248,4 @@ kubectl rollout status deployment/hospital-booking-deployment
 | `CrashLoopBackOff` | Application inside container exits immediately upon start. | Inspect container logs with `kubectl logs <pod-name>`. For Nginx, ensure `daemon off;` is active. |
 | Pod stuck in `Pending` | Insufficient CPU/Memory resources on cluster node. | Review node capacity (`kubectl describe node`) and adjust `resources.requests` in `deployment.yaml`. |
 | Pod unready (`0/1 Running`) | `readinessProbe` failing on `/healthz`. | Verify health endpoint inside pod: `kubectl exec <pod-name> -- wget -qO- http://127.0.0.1:80/healthz`. |
+

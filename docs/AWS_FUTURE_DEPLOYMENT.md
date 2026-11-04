@@ -126,3 +126,4 @@ sudo docker rm hospital-booking-app
 
 # 3. Release any Elastic IPs associated with the instance to avoid idle IP charges
 ```
+

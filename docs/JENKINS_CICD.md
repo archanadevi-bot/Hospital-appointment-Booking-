@@ -209,3 +209,4 @@ stage('6. Post-Deployment Verification') {
 | `docker: command not found` inside Jenkins | Jenkins container lacks Docker CLI binary. | Ensure Docker socket is mounted (`-v /var/run/docker.sock:/var/run/docker.sock`) and Docker CLI is installed in container. |
 | Permission denied on `docker.sock` | Container user lacks socket read/write permissions. | Run `docker exec -u 0 jenkins chmod 666 /var/run/docker.sock`. |
 | Pipeline hangs during test stage | Test container port `8085` blocked or conflicting. | Ensure no other process is bound to port 8085 using `Get-NetTCPConnection -LocalPort 8085`. |
+

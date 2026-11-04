@@ -212,3 +212,4 @@ docker compose down
 | `port is already allocated: 8080` | Another process is occupying port 8080. | Run `Get-NetTCPConnection -LocalPort 8080` to identify the process or map to port 8082. |
 | `wget: can't connect to remote host: Connection refused` | Healthcheck querying `localhost` on IPv6 `::1`. | Change healthcheck URL to `http://127.0.0.1:80/healthz` and add `listen [::]:80;` to `nginx.conf`. |
 | Image build takes too long | Unnecessary files copied into build context. | Add `.git`, `*.md`, `node_modules`, and `.idea` to `.dockerignore`. |
+
